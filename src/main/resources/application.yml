@@ -1,0 +1,47 @@
+# Registramos este proyecto como cliente de Eureka
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+# El puerto 8090 es usado comúnmente para los API Gateway
+# Este puerto también lo tiene Zuul y lo mantendremos asi ya que solo usaremos uno de los dos.
+server:
+  port: 8090
+spring:
+  application:
+    name: servicio-gateway-server
+  cloud:
+    gateway:
+      routes:
+        # Configuracion de la ruta al microservicio "servicio-productos" asignada por el API Gateway
+        - id: servicio-productos
+        # En el "uri" estariamos indicando la instancia del microservicio, ya que con "lb://" se indica que se esta utilizando balanceo de carga.
+        # lb : Palabra reservada que indica que se accedera a este recuerso mediante balanceo de carga 
+        # //servicio-productos : Ruta que debe coincidir con el "id" de arriba, aunque con añadiendo doble slash "//"
+          uri: lb://servicio-productos
+        # Indicamos las rutas, en este caso solo una
+          predicates:
+          - Path=/api/productos/**
+        # stripPrefix=2 : Filtro necesario ya que el "Path" arriba asignado, esta compuesto por 2 segmentos
+        # Estos segmentos(cantidad de palabras dividas por un slash) son "/api" y "/productos/"
+          filters:
+          - StripPrefix=2
+          # Primera opcion utilizando el atributo "name" con el sufijo "...GatewayFilterFactory" en el nombre de la clase.          
+          # Configuracion en la ruta de productos, agregando un "filtro por rutas"
+          # Este palabra "Ejemplo" corresponde al prefijo del nombre de la clase "EjemploGatewayFilterFactory",
+          # y el sufijo se mantiene con "...GatewayFilterFactory" para esta primera alternativa de "filtro por rutas".
+          - name: Ejemplo
+            args:
+            # Estos 3 son nombres son dados y asingnados por nosotros en este archivo ".yml"
+            # Y deben coincidir con los atributos de la clase de configuracion de la clase "EjemploGatewayFilterFactory"
+            # Lista de mapas(key-value)
+              mensaje: Hola mi mensaje personalizado
+              cookieNombre: usuario
+              cookieValor: RafaelMinaya
+        # Configuracion de la ruta al microservicio "servicio-items" asignada por el API Gateway
+        - id: servicio-items
+          uri: lb://servicio-items        
+          predicates:
+          - Path=/api/items/**
+          filters:
+          - StripPrefix=2        
