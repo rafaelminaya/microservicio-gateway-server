@@ -1,10 +1,13 @@
 package com.formacionbdi.springboot.app.gateway.filters.factory;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
+import org.springframework.cloud.gateway.filter.OrderedGatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
@@ -69,8 +72,15 @@ public class EjemploGatewayFilterFactory extends AbstractGatewayFilterFactory<Ej
 	 */
 	@Override
 	public GatewayFilter apply(Configuracion config) {
+		/*
+		 * new OrderedGatewayFilter : 
+		 * Permite indicar el orden de la ejecucion, 
+		 * Pero este orden es opcional, es decir, podriamos no retonar una instancia de "OrderedGatewayFilter" y su orden "2", 
+		 * sino retornar únicamente  el lambda "(exchange, chain)".
+		 * El primer argumento es la expresion lambda y el segundo el orden.
+		 */
 		
-		return (exchange, chain) -> {
+		return new OrderedGatewayFilter((exchange, chain) -> {
 			/*
 			 * Lo que venga antes del return es el "pre" y lo que viene después el "post"
 			 */
@@ -80,7 +90,8 @@ public class EjemploGatewayFilterFactory extends AbstractGatewayFilterFactory<Ej
 
 			return chain.filter(exchange).then(Mono.fromRunnable(() -> {
 				// Verificación de la existencia del "cookieValor" obtenido del argumento "config"
-				Optional.ofNullable(config.cookieValor).ifPresent(cookieValor -> { 
+				// Con eta condición, si no está presente un valor, la "cookie" ni siquiera se creará.
+				Optional.ofNullable(config.cookieValor).ifPresent(cookieValor -> {					
 					//Envío de una "cookie"(representado por un name y un value) al "response",
 					//cuyos valores del "name" y "value" son los valores de "config.cookieNombre" y "config.cookieValor" respectivamente
 					exchange.getResponse().addCookie(ResponseCookie.from(config.cookieNombre, cookieValor).build());
@@ -88,8 +99,32 @@ public class EjemploGatewayFilterFactory extends AbstractGatewayFilterFactory<Ej
 				
 				logger.info("---- Ejecutando el filtro factory POST: " + config.mensaje + "  ---- ");
 			}));
-		};
+			// Este "2" representa el orden, puede ser desde el número 1 en adelante.
+		}, 2);
 	}
+ 
+	// Sobre escribimos este método que proviene de la interfaz "ShortcutConfigurable"
+	// Este método retornara un lista con los nombres de los campos con el orden en que queremos que se ejecuten
+	@Override
+	public List<String> shortcutFieldOrder() {
+		// Este orden debe coincidir con lo escrito en el archivo "application.yml"
+		return Arrays.asList("mensaje", "cookieNombre", "cookieValor");
+	}
+
+	/*
+	 *  Método implementado de la interfaz "GatewayFilterFactory"
+	 *  Método que permite modificar el nombre del filtro, 
+	 *  que por defecto toma el nombre de la clase dejando de la el  "GatewayFilterFactory",
+	 *  es decir, se llamaría "Ejemplo", por el nombre completo de "EjemploGatewayFilterFactory"
+	 */
+	// 
+	@Override
+	public String name() {
+		// Este nombre debe coincidir con el "filter" en el archivo "application.yml"
+		return "EjemploCookie";
+	}
+	
+	
 	
 
 }

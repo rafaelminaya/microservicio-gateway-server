@@ -22,26 +22,49 @@ spring:
         # Indicamos las rutas, en este caso solo una
           predicates:
           - Path=/api/productos/**
+          # Regla para que en el "header" del request, contenga un "token" y su valor sea cualquier valor numerico(\d+)
+          - Header=token, \d+
+          # Regla para que en el "header" del request, tenga un contenido en formato "json". Para get no es recomendable, pero si para post o put
+          - Header=Content-Type, application/json
+          # Regla para solo admitir metodos get y post
+          - Method=GET, POST
+          # Regla para el "param" del request, contenga un key=color y value={cualquiera_en_este_caso}
+          - Query=color
+          # Regla para el "cookie" del request, contenga un key=color y value=azul
+          - Cookie=color, azul
         # stripPrefix=2 : Filtro necesario ya que el "Path" arriba asignado, esta compuesto por 2 segmentos
         # Estos segmentos(cantidad de palabras dividas por un slash) son "/api" y "/productos/"
           filters:
           - StripPrefix=2
+          # Segunda opcion de configurar un "filtro por rutas". El nombre y los parametros separados por comas y espacios.
+          # Los "value" de estos "name" los asignaremos en el metodo "shortcutFieldOrder()" de la clase "EjemploGatewayFilterFactory"
+          # "EjemploCookie" es el valor retornado en el metodo "name()" de la clase "EjemploGatewayFilterFactory"
+          - EjemploCookie=Hola mi mensaje personalizado, usuario
           # Primera opcion utilizando el atributo "name" con el sufijo "...GatewayFilterFactory" en el nombre de la clase.          
           # Configuracion en la ruta de productos, agregando un "filtro por rutas"
           # Este palabra "Ejemplo" corresponde al prefijo del nombre de la clase "EjemploGatewayFilterFactory",
           # y el sufijo se mantiene con "...GatewayFilterFactory" para esta primera alternativa de "filtro por rutas".
-          - name: Ejemplo
-            args:
+          ##- name: Ejemplo
+            ##args:
             # Estos 3 son nombres son dados y asingnados por nosotros en este archivo ".yml"
             # Y deben coincidir con los atributos de la clase de configuracion de la clase "EjemploGatewayFilterFactory"
             # Lista de mapas(key-value)
-              mensaje: Hola mi mensaje personalizado
-              cookieNombre: usuario
-              cookieValor: RafaelMinaya
+              ##mensaje: Hola mi mensaje personalizado
+              ##cookieNombre: usuario
+              ##cookieValor: RafaelMinaya
         # Configuracion de la ruta al microservicio "servicio-items" asignada por el API Gateway
         - id: servicio-items
           uri: lb://servicio-items        
           predicates:
           - Path=/api/items/**
           filters:
-          - StripPrefix=2        
+          - StripPrefix=2
+          # Filtros que vienen por defecto. Mas detalles en la documentacion oficial.
+          # Filtro que agrega al header del request, un parametro que queramos(name:token-request y value: 123456)
+          - AddRequestHeader=token-request, 123456
+          # Filtro que agrega al header del response, un parametro que queramos(name:token-response y value: 123456)
+          - AddResponseHeader=token-response, 12345678
+          # Filtro que modifica el header del response, modificando el tipo del contenido a texto plano
+          - SetResponseHeader=Content-Type, text/plain
+          # Filtro que agrega un params del request (key:nombre y value: rafael)
+          - AddRequestParameter=nombre, rafael
