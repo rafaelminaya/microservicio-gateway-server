@@ -1,8 +1,38 @@
+######################################## CONFIGURACION CIRCUIT BREAKER ########################################
+resilience4j:
+  circuitbreaker:
+    configs:
+      # "defecto" es el nombre asignado por nosotros a esta configuracion
+      defecto:
+      # Aca realizamos las configuraciones del circuit breaker
+      # Veremos propiedades, similares a los metodos  utilizados en el metodo "defaulCustomizer()" de la clase "RestTemplateConfig"
+        sliding-window-size: 6
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 20s
+        permitted-number-of-calls-in-half-open-state: 4
+        slow-call-rate-threshold: 50
+        slow-call-duration-threshold: 2s
+        
+    # Asignamos la configuracion "defecto" creado en el archivo actual al circuit breaker llamado "productos" ubicado en el metodo "detalle()" de la clase "ItemController"
+    instances:  
+      productos: # este es el mismo nombre del circuit breaker en el controlador
+        base-config: defecto # Este es el nombre creado mas arriba
+  # Tiempo máximo de espera(timeout) a 2 segundos. En el fondo "timelimiter" es como "circuitbreaker" ya que tiene su configuracion
+  timelimiter:
+    configs:
+    # "defecto" es el nombre que asignamos aqui, coincide con el de arriba, pero no es necesario que asi sea.
+      defecto:
+        timeout-duration: 2s
+    # Similar a lo configurado mas arriba, asignamos el "defecto" al circuit breaker "productos" del controlador
+    instances:
+      productos:
+        base-config: defecto
 # Registramos este proyecto como cliente de Eureka
 eureka:
   client:
     serviceUrl:
       defaultZone: http://localhost:8761/eureka/
+######################################## CONFIGURACION API GATEWAY ########################################
 # El puerto 8090 es usado comúnmente para los API Gateway
 # Este puerto también lo tiene Zuul y lo mantendremos asi ya que solo usaremos uno de los dos.
 server:
@@ -19,22 +49,31 @@ spring:
         # lb : Palabra reservada que indica que se accedera a este recuerso mediante balanceo de carga 
         # //servicio-productos : Ruta que debe coincidir con el "id" de arriba, aunque con añadiendo doble slash "//"
           uri: lb://servicio-productos
-        # Indicamos las rutas, en este caso solo una
+        # Los "predicate" son reglas/condiciones que debe cumplir el request para que funcionen los endpoints configurados en el "application.yml". 
           predicates:
+          # Indicamos las rutas, en este caso solo una
           - Path=/api/productos/**
           # Regla para que en el "header" del request, contenga un "token" y su valor sea cualquier valor numerico(\d+)
-          - Header=token, \d+
+          ##- Header=token, \d+
           # Regla para que en el "header" del request, tenga un contenido en formato "json". Para get no es recomendable, pero si para post o put
-          - Header=Content-Type, application/json
+          ##- Header=Content-Type, application/json
           # Regla para solo admitir metodos get y post
-          - Method=GET, POST
+          ##- Method=GET, POST
           # Regla para el "param" del request, contenga un key=color y value={cualquiera_en_este_caso}
-          - Query=color
+          ##- Query=color
           # Regla para el "cookie" del request, contenga un key=color y value=azul
-          - Cookie=color, azul
+          ##- Cookie=color, azul
         # stripPrefix=2 : Filtro necesario ya que el "Path" arriba asignado, esta compuesto por 2 segmentos
         # Estos segmentos(cantidad de palabras dividas por un slash) son "/api" y "/productos/"
           filters:
+          # Filtro que representa un circuit breaker
+          # "CircuitBreaker" es una palabra reservada de spring cloud gateway
+          # "productos" representa el nombre de la instancia del "circuit breaker", asignada arriba en "instances: productos"
+          - name: CircuitBreaker
+            args:
+              name: productos
+              statusCodes: 500, 404 # codigos de estado esperados, el 500 corresponde a la excepcion enviada por el servicio de productos con el id 10
+              fallbackUri: forward:/api/items/ver/9/cantidad/5 # configuracion de ruta alternativa para cuando ocurra el "circuit breaker"
           - StripPrefix=2
           # Segunda opcion de configurar un "filtro por rutas". El nombre y los parametros separados por comas y espacios.
           # Los "value" de estos "name" los asignaremos en el metodo "shortcutFieldOrder()" de la clase "EjemploGatewayFilterFactory"

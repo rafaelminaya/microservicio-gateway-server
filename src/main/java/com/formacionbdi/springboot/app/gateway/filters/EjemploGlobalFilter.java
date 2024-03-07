@@ -44,9 +44,9 @@ public class EjemploGlobalFilter implements GlobalFilter, Ordered {
 		 * Permite mutar la información, en este caso del request.
 		 * 
 		 * .headers()
-		 * Permite modificar del header del request, maneja una expresión lambda.
-		 * Por lo que agregaremos token con su valor.
-		 * Este token, podría ser manipulado en el controler o service.
+		 * Permite modificar el header del request, maneja una expresión lambda.
+		 * Por lo que agregaremos token con su propio valor.
+		 * Este token, podría ser manipulado en el controller o service.
 		 */
 		exchange.getRequest().mutate().headers(h -> h.add("token", "123456")); 
 		
@@ -56,13 +56,13 @@ public class EjemploGlobalFilter implements GlobalFilter, Ordered {
 		 * 
 		 * then(): 
 		 * Operador que se ejecuta una vez finalizado el proceso previo y obtenido una respuesta.
-		 * Dentro de este manipularemos el response.
+		 * Dentro de este método manipularemos el response.
 		 * Como argumento se le envía un objeto reactivo, del tipo "Mono", llamando a un función implementada, el cual tendrá nuestro código "post".
 		 * 
 		 * fromRunnable()
-		 * Método de la clase "Mono" que utilizaremos. El cual permite ejecutar desde una expresión lambda un "Runneable" el cual es un hilo de Java.
-		 * Permite crear un "Mono<Void>", tipo de dato de la firma del método,
-		 * que es un objeto reactivo para poder implement	ar el "post"
+		 * Método de la clase "Mono" que utilizaremos. 
+		 * El cual permite ejecutar desde una expresión lambda un "Runneable"(interfaz funcional) el cual es un hilo de Java.
+		 * Permite crear un "Mono<Void>", tipo de dato de la firma del método, que es un objeto reactivo para poder implementar el "post"
 		 */
 		return chain.filter(exchange).then(Mono.fromRunnable(() -> {
 			logger.info("---- Ejecutando el filtro Global POST ---- ");
@@ -91,10 +91,12 @@ public class EjemploGlobalFilter implements GlobalFilter, Ordered {
 			 */
 			
 			// Modificación del cookie del response - Añadiendo una cookie y su valor
+			/*
 			exchange
 			.getResponse()
 			.getCookies()
 			.add("color", ResponseCookie.from("color", "rojo").build());
+			*/
 			
 			// Modificación del "header" del response - Modificando el response a formato "texto plano"
 			/*
@@ -108,9 +110,10 @@ public class EjemploGlobalFilter implements GlobalFilter, Ordered {
 	
 	@Override
 	public int getOrder() {
-		// -1 para que se el primer filtro global en ejecutarse. 
+		// -1 para que sea el primer filtro global en ejecutarse. 
 		// Y 1 o más para que no sea el primero en ejecutarse.
-		return 1;
+		// 100 para darle baja prioridad y que funciona la configuración con tolerancia a fallos del "application.yml" sin conflictos
+		return 100;
 	}
 	
 
