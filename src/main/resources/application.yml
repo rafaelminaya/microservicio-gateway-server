@@ -37,9 +37,12 @@ eureka:
 # Este puerto también lo tiene Zuul y lo mantendremos asi ya que solo usaremos uno de los dos.
 server:
   port: 8090
-spring:
+spring:  
   application:
     name: servicio-gateway-server
+  # Configuracion necesaria para un cliente del servidor de configuraciones de spring cloud cofing server
+  config:
+    import: 'optional:configserver:'    
   cloud:
     gateway:
       routes:
@@ -107,3 +110,17 @@ spring:
           - SetResponseHeader=Content-Type, text/plain
           # Filtro que agrega un params del request (key:nombre y value: rafael)
           - AddRequestParameter=nombre, rafael
+        # Configuracion de la ruta al microservicio "servicio-oauth" asignada por el API Gateway
+        - id: servicio-oauth
+          uri: lb://servicio-oauth        
+          predicates:
+          - Path=/api/security/**
+          filters:
+          - StripPrefix=2
+        # Configuracion de la ruta al microservicio "servicio-usuarios" asignada por el API Gateway
+        - id: servicio-usuarios
+          uri: lb://servicio-usuarios        
+          predicates:
+          - Path=/api/usuarios/**
+          filters:
+          - StripPrefix=2          
